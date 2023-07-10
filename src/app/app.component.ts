@@ -1,43 +1,38 @@
 import { Component } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { HttpHeaders, HttpClient } from '@angular/common/http';
-import { DataService } from './servicios/data/data.service';
-
+import { catchError, map,tap,delay,scan, filter, subscribeOn } from 'rxjs/operators'
+import { of } from 'rxjs';
+import { ParseTreeResult } from '@angular/compiler';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
-  providers:[DataService],
 })
 export class AppComponent {
   title = 'paises';
-  resultado = '';
+  
   private API_BUSCAR="/websamples.countryinfo/CountryInfoService.wso";
 
  
-  constructor(private dataSvc:DataService, private http:HttpClient) {
+  constructor(private http:HttpClient) {
 
   }
   ngOnInit(){
-    this.dataSvc.getAll().subscribe((res)=>{
-      console.log("Res",res);
-    })
   }
 
-  testAPI() {
+  testAPI(cod: string) {
     const headers = new HttpHeaders({
       'Content-Type': 'text/xml',
-      'SOAPAction': '',
-      'Accept-Encoding': 'gzip,deflate',
-      'Host': 'webservices.oorsprong.org'
+      'Accept': 'text/xml'
     })
     
     let body = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.oorsprong.org/websamples.countryinfo">
     <soapenv:Header/>
     <soapenv:Body>
        <web:CountryName>
-          <web:sCountryISOCode>EC</web:sCountryISOCode>
+          <web:sCountryISOCode>` + cod + `</web:sCountryISOCode>
        </web:CountryName>
     </soapenv:Body>
  </soapenv:Envelope>`;
@@ -45,9 +40,31 @@ export class AppComponent {
     return this.http.post( this.API_BUSCAR, 
       body,
       {
-        headers
-      }
-      ).subscribe();
+        headers,
+        responseType: 'text'
+      },
+      ).pipe(
+        map( (response) => {
+          const xmlString=`<?xml version="1.0" encoding="utf-8"?>
+          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+            <soap:Body>
+              <m:CountryNameResponse xmlns:m="http://www.oorsprong.org/websamples.countryinfo">
+                <m:CountryNameResult> ` +response+ `</m:CountryNameResult>
+              </m:CountryNameResponse>
+            </soap:Body>
+          </soap:Envelope>`;
+       const xmlDocument = new DOMParser().parseFromString(response,"text/xml");
+ 
+       const tutorials=xmlDocument.querySelector("CountryNameResult");
+ 
+          return tutorials;
+        
+        }
+      )
+      ).subscribe((result) => {
+        console.log(result)
+        
+      });
       
   }
 
@@ -61,8 +78,9 @@ export class AppComponent {
     let cod = form.value.cod; 
 
     console.log("codigo a consultar: "+cod);
-    
-    this.testAPI();
+
+    this.testAPI(cod);
+
     return true;
   }
 
