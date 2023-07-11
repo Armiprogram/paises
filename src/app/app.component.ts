@@ -3,7 +3,7 @@ import { NgForm } from '@angular/forms';
 import { HttpHeaders, HttpClient } from '@angular/common/http';
 import { catchError, map,tap,delay,scan, filter, subscribeOn } from 'rxjs/operators'
 import { of } from 'rxjs';
-import { ParseTreeResult } from '@angular/compiler';
+import { ParseTreeResult, devOnlyGuardedExpression } from '@angular/compiler';
 
 @Component({
   selector: 'app-root',
@@ -55,7 +55,7 @@ export class AppComponent {
           </soap:Envelope>`;
        const xmlDocument = new DOMParser().parseFromString(response,"text/xml");
  
-       const tutorials=xmlDocument.querySelector("CountryNameResult");
+       const tutorials=xmlDocument.querySelector("CountryNameResult")?.textContent
  
           return tutorials;
         
